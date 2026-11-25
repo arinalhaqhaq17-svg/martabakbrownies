@@ -1,0 +1,6 @@
+{
+  "name": "MARTABAK BROWNIS",
+  "description": "Martabak Brownis Banda Aceh — Lembut di Dalam, Manis di Setiap Gigitan. Perpaduan tekstur martabak yang lembut dan rasa cokelat khas brownis dengan beragam topping.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
