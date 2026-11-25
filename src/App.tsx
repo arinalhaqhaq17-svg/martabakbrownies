@@ -7,6 +7,7 @@ import { Footer } from './components/Footer';
 import { GallerySection } from './components/GallerySection';
 import { HeroSection } from './components/HeroSection';
 import { MenuSection } from './components/MenuSection';
+import { N8nChatbot } from './components/N8nChatbot';
 import { Navbar } from './components/Navbar';
 import { SwotSection } from './components/SwotSection';
 import { TargetMarketSection } from './components/TargetMarketSection';
@@ -28,6 +29,7 @@ export default function App() {
         </main>
         <Footer />
         <BackToTopButton />
+        <N8nChatbot />
       </div>
     </MotionConfig>
   );
