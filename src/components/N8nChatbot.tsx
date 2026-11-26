@@ -28,6 +28,20 @@ const QUICK_PROMPTS = [
   'Cara pesan untuk acara ulang tahun',
 ];
 
+function renderFormattedText(text: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+      return (
+        <strong key={index} className="font-semibold">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    return <span key={index}>{part}</span>;
+  });
+}
+
 function formatTimeNow(): string {
   return new Date().toLocaleTimeString('id-ID', {
     hour: '2-digit',
@@ -56,8 +70,11 @@ export function N8nChatbot() {
   );
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [lastFailedText, setLastFailedText] = useState<string | null>(null);
+  const [connectedToN8n, setConnectedToN8n] = useState<boolean>(() =>
+    isN8nConfigured()
+  );
 
-  const n8nReady = isN8nConfigured();
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -95,10 +112,14 @@ export function N8nChatbot() {
 
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
+    setLastFailedText(null);
     setIsSending(true);
 
     try {
       const result = await sendMessageToN8n(trimmed, sessionId);
+      if (result.source === 'n8n') {
+        setConnectedToN8n(true);
+      }
       const botMsg: ChatMessage = {
         id: `bot-${Date.now()}`,
         sender: 'bot',
@@ -107,6 +128,7 @@ export function N8nChatbot() {
       };
       setMessages((prev) => [...prev, botMsg]);
     } catch (error) {
+      setLastFailedText(trimmed);
       const errMsg: ChatMessage = {
         id: `err-${Date.now()}`,
         sender: 'bot',
@@ -132,6 +154,7 @@ export function N8nChatbot() {
     setSessionId(createChatSessionId());
     setMessages(createInitialMessages());
     setInput('');
+    setLastFailedText(null);
   };
 
   const whatsappFallbackHref = buildWhatsAppUrl(
@@ -154,9 +177,9 @@ export function N8nChatbot() {
                 Asisten {BUSINESS_INFO.name}
               </h2>
               <p className="mt-0.5 text-xs text-[#DFCBB5]">
-                {n8nReady
-                  ? 'Terhubung dengan otomatisasi n8n'
-                  : 'Integrasi n8n · Siap dikonfigurasi'}
+                {connectedToN8n
+                  ? 'Terhubung dengan n8n'
+                  : 'Info Menu & Pemesanan · Siap n8n'}
               </p>
             </div>
 
@@ -186,8 +209,13 @@ export function N8nChatbot() {
             ref={scrollContainerRef}
             className="flex-1 space-y-4 overflow-y-auto px-4 py-4"
           >
-            {messages.map((msg) => {
+            {messages.map((msg, idx) => {
               const isUser = msg.sender === 'user';
+              const isLatestError =
+                msg.isError &&
+                idx === messages.length - 1 &&
+                lastFailedText !== null &&
+                !isSending;
               return (
                 <div
                   key={msg.id}
@@ -204,7 +232,18 @@ export function N8nChatbot() {
                           : 'rounded-bl-sm border border-[#E5D8C7] bg-white text-[#24150E]'
                     }`}
                   >
-                    {msg.text}
+                    {renderFormattedText(msg.text)}
+                    {isLatestError && (
+                      <div className="mt-2.5 pt-2 border-t border-[#9E6F20]/20">
+                        <button
+                          type="button"
+                          onClick={() => void handleSend(lastFailedText)}
+                          className="text-xs font-semibold text-[#9E6F20] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9E6F20]"
+                        >
+                          Coba kirim ulang
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <span className="mt-1 px-1 text-[11px] text-[#6B4631] tabular-nums">
                     {isUser ? 'Anda' : 'Asisten'} · {msg.timestamp}
